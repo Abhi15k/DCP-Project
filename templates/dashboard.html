@@ -1,0 +1,1392 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CavityDetect AI · Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        --teal: #03b5c0;
+        --teal-dark: #0294a1;
+        --teal-light: #7feaf2;
+        --navy: #0f172a;
+        --gray: #475569;
+        --muted: #94a3b8;
+        --white: #ffffff;
+        --danger: #f87171;
+        --success: #34d399;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: "Poppins", system-ui, -apple-system, BlinkMacSystemFont,
+          "Segoe UI", sans-serif;
+        background: #f6fbff;
+        color: var(--navy);
+        overflow-x: hidden;
+      }
+
+      /* animated mesh background */
+      body::before,
+      body::after {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: -2;
+        background: radial-gradient(
+            circle at 20% 20%,
+            rgba(3, 181, 192, 0.15),
+            transparent 45%
+          ),
+          radial-gradient(
+            circle at 80% 0%,
+            rgba(126, 234, 242, 0.15),
+            transparent 40%
+          ),
+          radial-gradient(
+            circle at 50% 80%,
+            rgba(255, 255, 255, 0.7),
+            transparent 55%
+          );
+        animation: meshShift 18s ease-in-out infinite alternate;
+      }
+
+      body::after {
+        filter: blur(60px);
+        opacity: 0.7;
+      }
+
+      @keyframes meshShift {
+        0% {
+          transform: translate3d(0, 0, 0) scale(1);
+        }
+        50% {
+          transform: translate3d(-2%, -1%, 0) scale(1.03);
+        }
+        100% {
+          transform: translate3d(2%, 2%, 0) scale(1.01);
+        }
+      }
+
+      /* navigation */
+      .nav-shell {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        z-index: 10;
+        padding: 0.65rem 2rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        background: rgba(255, 255, 255, 0.85);
+        backdrop-filter: blur(18px);
+        border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+      }
+
+      .nav-logo {
+        font-weight: 600;
+        font-size: 1.15rem;
+        color: var(--teal-dark);
+      }
+
+      .nav-links {
+        list-style: none;
+        display: flex;
+        gap: 1.5rem;
+        margin: 0;
+        padding: 0;
+      }
+
+      .nav-links a {
+        text-decoration: none;
+        font-weight: 500;
+        color: var(--gray);
+        position: relative;
+        padding-bottom: 0.25rem;
+      }
+
+      .nav-links a.active::after {
+        content: "";
+        position: absolute;
+        left: 0;
+        bottom: 0;
+        width: 100%;
+        height: 2px;
+        background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+        border-radius: 999px;
+      }
+
+      .nav-profile {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+      }
+
+      .nav-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+        display: grid;
+        place-items: center;
+        color: var(--white);
+        font-weight: 600;
+      }
+
+      .logout-btn {
+        border: none;
+        background: rgba(15, 23, 42, 0.06);
+        padding: 0.45rem 0.75rem;
+        border-radius: 999px;
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--gray);
+        cursor: pointer;
+      }
+
+      main {
+        padding: 6.5rem clamp(1.5rem, 5vw, 3.5rem) 2.5rem;
+        display: flex;
+        justify-content: center;
+      }
+
+      .dashboard-card {
+        width: min(1100px, 100%);
+        background: rgba(255, 255, 255, 0.93);
+        border-radius: 32px;
+        padding: clamp(1.5rem, 4vw, 3rem);
+        box-shadow: 0 30px 80px rgba(2, 148, 161, 0.2);
+        position: relative;
+        overflow: hidden;
+      }
+
+      .dashboard-card::after {
+        content: "";
+        position: absolute;
+        inset: 1.25rem;
+        border-radius: 24px;
+        border: 1px solid rgba(3, 181, 192, 0.08);
+        pointer-events: none;
+      }
+
+      .hero-header {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1.5rem;
+        align-items: center;
+        margin-bottom: 2rem;
+      }
+
+      .hero-header h1 {
+        margin: 0;
+        font-size: clamp(1.8rem, 4vw, 2.8rem);
+      }
+
+      .hero-header p {
+        margin: 0;
+        color: var(--muted);
+        max-width: 540px;
+      }
+
+      .upload-shell {
+        display: grid;
+        grid-template-columns: minmax(280px, 1fr) minmax(320px, 1.1fr);
+        gap: 2rem;
+        transition: opacity 0.6s ease, transform 0.6s ease, max-height 0.6s ease;
+        max-height: 1200px;
+      }
+
+      .upload-shell.collapsed {
+        opacity: 0;
+        transform: translateY(40px);
+        pointer-events: none;
+        max-height: 0;
+        overflow: hidden;
+      }
+
+      .info-panel {
+        padding: 1.5rem;
+        border-radius: 24px;
+        background: linear-gradient(
+          135deg,
+          rgba(3, 181, 192, 0.08),
+          rgba(2, 148, 161, 0.12)
+        );
+      }
+
+      .info-panel h3 {
+        margin-top: 0;
+        margin-bottom: 0.5rem;
+      }
+
+      .info-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .info-list li {
+        display: flex;
+        gap: 0.65rem;
+        align-items: flex-start;
+        color: var(--gray);
+      }
+
+      .info-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.7);
+        display: grid;
+        place-items: center;
+        color: var(--teal-dark);
+        font-weight: 600;
+      }
+
+      .upload-panel {
+        background: var(--white);
+        border-radius: 28px;
+        padding: 2rem;
+        border: 1px solid rgba(15, 23, 42, 0.06);
+        position: relative;
+      }
+
+      .drop-zone {
+        border: 2px dashed rgba(71, 85, 105, 0.4);
+        border-radius: 24px;
+        padding: 2.5rem 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition: border 0.3s ease, box-shadow 0.3s ease;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .drop-zone.dragover {
+        border-color: var(--teal);
+        box-shadow: 0 0 0 4px rgba(3, 181, 192, 0.1);
+      }
+
+      .drop-zone.has-image {
+        border-style: solid;
+      }
+
+      .drop-idle {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        color: var(--gray);
+        transition: opacity 0.3s ease;
+      }
+
+      .drop-zone.has-image .drop-idle {
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      .floating-icon {
+        width: 120px;
+        height: 120px;
+        border-radius: 32px;
+        background: linear-gradient(
+          145deg,
+          rgba(3, 181, 192, 0.15),
+          rgba(2, 148, 161, 0.25)
+        );
+        display: grid;
+        place-items: center;
+        animation: float 4s ease-in-out infinite;
+      }
+
+      .floating-icon svg {
+        width: 60px;
+        height: 60px;
+        fill: var(--teal);
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      .drop-preview {
+        position: absolute;
+        inset: 0;
+        padding: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+      }
+
+      .drop-zone.has-image .drop-preview {
+        opacity: 1;
+        pointer-events: all;
+      }
+
+      .preview-frame {
+        position: relative;
+        border-radius: 22px;
+        overflow: hidden;
+        max-height: 320px;
+        width: 100%;
+      }
+
+      .preview-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+
+      .ready-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: rgba(16, 185, 129, 0.9);
+        color: var(--white);
+        padding: 0.45rem 0.9rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+      }
+
+      .scan-grid {
+        position: absolute;
+        inset: 0;
+        background-image: linear-gradient(
+            rgba(255, 255, 255, 0.08) 1px,
+            transparent 1px
+          ),
+          linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
+        background-size: 40px 40px;
+        opacity: 0;
+        animation: gridSweep 1.5s linear infinite;
+        mix-blend-mode: screen;
+      }
+
+      @keyframes gridSweep {
+        from {
+          background-position: 0 0, 0 0;
+        }
+        to {
+          background-position: 40px 0, 0 40px;
+        }
+      }
+
+      .drop-zone.scanning .scan-grid {
+        opacity: 1;
+      }
+
+      .drop-zone input[type="file"] {
+        display: none;
+      }
+
+      .cta-row {
+        margin-top: 1.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .analyze-btn {
+        flex: 1;
+        min-width: 200px;
+        border: none;
+        border-radius: 18px;
+        padding: 1rem 1.5rem;
+        font-size: 1.05rem;
+        font-weight: 600;
+        color: var(--white);
+        background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+        box-shadow: 0 20px 35px rgba(3, 181, 192, 0.35);
+        cursor: pointer;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+      }
+
+      .analyze-btn:disabled {
+        cursor: not-allowed;
+        opacity: 0.4;
+        box-shadow: none;
+        background: linear-gradient(135deg, #d4e1e7, #c5d7dd);
+        color: #6b7280;
+      }
+
+      .analyze-btn.processing {
+        gap: 0.5rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .spinner {
+        width: 20px;
+        height: 20px;
+        border: 3px solid rgba(255, 255, 255, 0.4);
+        border-top-color: var(--white);
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      .cta-note {
+        color: var(--muted);
+        font-size: 0.9rem;
+      }
+
+      .error-text {
+        color: var(--danger);
+        font-size: 0.9rem;
+        margin: 0.2rem 0 0;
+      }
+
+      .results-shell {
+        margin-top: 0;
+        border-radius: 28px;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(15, 23, 42, 0.06);
+        box-shadow: 0 35px 70px rgba(2, 148, 161, 0.25);
+        padding: 0 clamp(1.5rem, 4vw, 3rem);
+        transform: translateY(40px);
+        opacity: 0;
+        pointer-events: none;
+        max-height: 0;
+        overflow: hidden;
+        transition: opacity 0.6s ease, transform 0.6s ease, max-height 0.6s ease,
+          padding 0.6s ease;
+      }
+
+      .results-shell.visible {
+        opacity: 1;
+        transform: translateY(0);
+        pointer-events: all;
+        max-height: 2000px;
+        padding: clamp(1.5rem, 4vw, 3rem);
+        margin-top: 1.5rem;
+      }
+
+      .results-grid {
+        display: grid;
+        grid-template-columns: minmax(280px, 1fr) minmax(320px, 1fr);
+        gap: 2rem;
+      }
+
+      .results-visual {
+        position: relative;
+        border-radius: 24px;
+        overflow: hidden;
+      }
+
+      .results-visual img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        border-radius: inherit;
+      }
+
+      .highlight-svg {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+      }
+
+      .box-path {
+        fill: transparent;
+        stroke: var(--danger);
+        stroke-width: 2;
+        stroke-dasharray: 600;
+        stroke-dashoffset: 600;
+        animation: drawBox 1.4s ease forwards;
+        animation-delay: 0.4s;
+      }
+
+      .results-visual.healthy .box-path {
+        stroke: var(--success);
+      }
+
+      @keyframes drawBox {
+        to {
+          stroke-dashoffset: 0;
+        }
+      }
+
+      .box-pulse {
+        position: absolute;
+        border: 2px solid rgba(248, 113, 113, 0.6);
+        border-radius: 16px;
+        animation: pulseGlow 2.6s ease-in-out infinite;
+        pointer-events: none;
+        box-shadow: 0 0 20px rgba(248, 113, 113, 0.5);
+      }
+
+      .results-visual.healthy .box-pulse {
+        border-color: rgba(52, 211, 153, 0.7);
+        box-shadow: 0 0 20px rgba(52, 211, 153, 0.4);
+      }
+
+      @keyframes pulseGlow {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 0.85;
+        }
+        50% {
+          transform: scale(1.03);
+          opacity: 0.4;
+        }
+      }
+
+      .box-label {
+        position: absolute;
+        top: 10%;
+        left: 55%;
+        background: var(--danger);
+        color: var(--white);
+        padding: 0.4rem 0.8rem;
+        border-radius: 999px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transform: translate(-50%, -50%);
+        opacity: 0;
+        animation: fadeSlide 0.6s ease forwards;
+        animation-delay: 1s;
+      }
+
+      .results-visual.healthy .box-label {
+        background: var(--success);
+      }
+
+      .results-data {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+      }
+
+      .muted {
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        font-size: 0.75rem;
+        color: var(--muted);
+      }
+
+      .status-badge {
+        align-self: flex-start;
+        padding: 0.5rem 1.2rem;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+
+      .status-badge.cavity {
+        background: rgba(248, 113, 113, 0.18);
+        color: var(--danger);
+      }
+
+      .status-badge.healthy {
+        background: rgba(52, 211, 153, 0.18);
+        color: var(--success);
+      }
+
+      .confidence-meter {
+        display: flex;
+        align-items: center;
+        gap: 1.5rem;
+        padding: 1.5rem;
+        border-radius: 20px;
+        background: linear-gradient(
+          135deg,
+          rgba(3, 181, 192, 0.08),
+          rgba(2, 148, 161, 0.18)
+        );
+      }
+
+      .donut {
+        width: 140px;
+        height: 140px;
+      }
+
+      .donut circle {
+        fill: none;
+        stroke-width: 10;
+        stroke-linecap: round;
+      }
+
+      .donut-bg {
+        stroke: rgba(255, 255, 255, 0.4);
+      }
+
+      .donut-meter {
+        stroke: var(--teal-dark);
+        stroke-dasharray: 440;
+        stroke-dashoffset: 440;
+      }
+
+      .results-shell.visible .donut-meter {
+        animation: fillDonut 1.4s ease forwards;
+        animation-delay: 0.4s;
+      }
+
+      @keyframes fillDonut {
+        to {
+          stroke-dashoffset: var(--donut-offset);
+        }
+      }
+
+      .donut-value {
+        position: absolute;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        font-weight: 600;
+        color: var(--white);
+        font-size: 1.4rem;
+      }
+
+      .confidence-copy {
+        color: var(--navy);
+      }
+
+      .insights-stack {
+        padding: 1.25rem 1.5rem;
+        border-radius: 18px;
+        background: rgba(15, 23, 42, 0.03);
+        border: 1px solid rgba(3, 181, 192, 0.08);
+      }
+
+      .insights-stack h4 {
+        margin: 0 0 0.35rem;
+      }
+
+      .insights-stack p {
+        margin: 0 0 1rem;
+        color: var(--gray);
+      }
+
+      .insights-meta {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1rem;
+      }
+
+      .insight-card {
+        border-radius: 16px;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.85);
+        border: 1px solid rgba(15, 23, 42, 0.05);
+      }
+
+      .insight-card h5 {
+        margin: 0 0 0.35rem;
+        font-size: 0.95rem;
+      }
+
+      .insight-card p {
+        margin: 0;
+        color: var(--gray);
+        font-size: 0.9rem;
+      }
+
+      .action-row {
+        margin-top: 1rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+      }
+
+      .btn-secondary,
+      .btn-primary {
+        border-radius: 16px;
+        padding: 0.85rem 1.4rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        border: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+      }
+
+      .btn-secondary {
+        color: var(--teal-dark);
+        background: transparent;
+        border: 1.5px solid rgba(3, 181, 192, 0.4);
+      }
+
+      .btn-primary {
+        color: var(--white);
+        background: linear-gradient(135deg, var(--teal), var(--teal-dark));
+        box-shadow: 0 15px 30px rgba(3, 181, 192, 0.35);
+      }
+
+      .action-row button:hover {
+        transform: translateY(-2px);
+      }
+
+      .stagger {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeSlide 0.6s ease forwards;
+      }
+
+      @keyframes fadeSlide {
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .results-shell.visible .stagger:nth-child(1) {
+        animation-delay: 0.2s;
+      }
+      .results-shell.visible .stagger:nth-child(2) {
+        animation-delay: 0.35s;
+      }
+      .results-shell.visible .stagger:nth-child(3) {
+        animation-delay: 0.5s;
+      }
+      .results-shell.visible .stagger:nth-child(4) {
+        animation-delay: 0.65s;
+      }
+
+      @media (max-width: 1024px) {
+        .upload-shell {
+          grid-template-columns: 1fr;
+        }
+
+        .results-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      @media (max-width: 768px) {
+        .nav-shell {
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+
+        .nav-links {
+          order: 3;
+        }
+
+        .upload-panel,
+        .info-panel {
+          padding: 1.5rem;
+        }
+
+        .drop-zone {
+          padding: 2rem 1rem;
+        }
+
+        .confidence-meter {
+          flex-direction: column;
+          text-align: center;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="nav-shell">
+      <div class="nav-logo">CavityDetect AI</div>
+      <ul class="nav-links">
+        <li><a href="#" class="active">Home</a></li>
+        <li><a href="#">Patient History</a></li>
+        <li><a href="#">Settings</a></li>
+      </ul>
+      <div class="nav-profile">
+        <div class="nav-avatar">AR</div>
+        <button
+          class="logout-btn"
+          onclick="window.location='{{ url_for('home') }}'"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M16 17L21 12L16 7"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M21 12H9"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+            <path
+              d="M12 7V5C12 3.89543 11.1046 3 10 3H5C3.89543 3 3 3.89543 3 5V19C3 20.1046 3.89543 21 5 21H10C11.1046 21 12 20.1046 12 19V17"
+              stroke="currentColor"
+              stroke-width="1.8"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+          </svg>
+          Logout
+        </button>
+      </div>
+    </nav>
+
+    <main>
+      <section class="dashboard-card">
+        <div class="hero-header">
+          <div>
+            <h1>Precision diagnostics at your fingertips.</h1>
+            <p>
+              Drop an intraoral X-ray, let the MedTech-grade pipeline prep,
+              scan, and deliver cavity staging with clinical guidance.
+            </p>
+          </div>
+        </div>
+
+        <div class="upload-shell" id="uploadShell">
+          <aside class="info-panel">
+            <h3>Workflow preview</h3>
+            <ul class="info-list">
+              <li>
+                <span class="info-icon">1</span>
+                <div>
+                  <strong>Secure ingestion</strong>
+                  <p>
+                    Files stay within your isolated environment—no cloud
+                    uploads.
+                  </p>
+                </div>
+              </li>
+              <li>
+                <span class="info-icon">2</span>
+                <div>
+                  <strong>Explainable AI</strong>
+                  <p>Automatic preprocessing plus ResNet50 classification.</p>
+                </div>
+              </li>
+              <li>
+                <span class="info-icon">3</span>
+                <div>
+                  <strong>Clinical brief</strong>
+                  <p>Actionable treatment plans and follow-ups instantly.</p>
+                </div>
+              </li>
+            </ul>
+          </aside>
+
+          <div class="upload-panel">
+            <form
+              id="analyzeForm"
+              method="POST"
+              action="{{ url_for('predict') }}"
+              enctype="multipart/form-data"
+            >
+              <div class="drop-zone" id="dropZone">
+                <input
+                  type="file"
+                  id="fileInput"
+                  name="filename"
+                  accept="image/*"
+                />
+                <div class="drop-idle">
+                  <div class="floating-icon">
+                    <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+                      <path
+                        d="M32 4c-5 0-9 4.5-13 9.5C14 22 12 28 12 35c0 5.5 2 9 4 13s7 12 16 12 14-8 16-12 4-7.5 4-13c0-7-2-13-7-21C41 8.5 37 4 32 4z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h3>Drag & drop dental X-ray</h3>
+                    <p>or click to upload from device.</p>
+                  </div>
+                </div>
+                <div class="drop-preview">
+                  <div class="preview-frame">
+                    <img id="previewImage" alt="Preview" />
+                    <span class="ready-badge">
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <polyline points="20 6 9 17 4 12" />
+                      </svg>
+                      Ready for analysis
+                    </span>
+                    <div class="scan-grid" id="scanGrid"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="cta-row">
+                <button
+                  type="submit"
+                  class="analyze-btn"
+                  id="analyzeBtn"
+                  disabled
+                >
+                  Analyze Image
+                </button>
+                <p class="cta-note">
+                  Supports PNG · JPG · JPEG · Minimum 224px resolution
+                  recommended.
+                </p>
+              </div>
+              <p class="error-text" id="analysisError"></p>
+            </form>
+          </div>
+        </div>
+
+        <div class="results-shell" id="resultsShell">
+          <div class="results-grid">
+            <div class="results-visual" id="resultsVisual">
+              <img id="resultImage" alt="Analyzed X-ray" />
+              <svg
+                class="highlight-svg"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+              >
+                <rect
+                  class="box-path"
+                  x="30"
+                  y="25"
+                  width="40"
+                  height="50"
+                  rx="4"
+                ></rect>
+              </svg>
+              <div
+                class="box-pulse"
+                style="top: 25%; left: 30%; width: 40%; height: 50%"
+              ></div>
+              <span class="box-label" id="boxLabel">Caries Detected</span>
+            </div>
+            <div class="results-data">
+              <div class="stagger">
+                <p class="muted">Analysis Complete</p>
+                <h2>AI Findings</h2>
+              </div>
+              <span class="status-badge stagger cavity" id="statusBadge">
+                High probability of cavity
+              </span>
+              <div class="confidence-meter stagger">
+                <div class="donut" aria-label="Confidence score">
+                  <svg viewBox="0 0 160 160">
+                    <circle class="donut-bg" cx="80" cy="80" r="70"></circle>
+                    <circle
+                      class="donut-meter"
+                      cx="80"
+                      cy="80"
+                      r="70"
+                      id="donutMeter"
+                    ></circle>
+                  </svg>
+                  <div class="donut-value" id="confidenceValue">0%</div>
+                </div>
+                <div class="confidence-copy">
+                  <h3 id="confidenceHeading">92% confidence</h3>
+                  <p id="confidenceCopy">
+                    The model has detected a carious lesion on the premolar with
+                    high confidence.
+                  </p>
+                </div>
+              </div>
+              <div class="stagger insights-stack">
+                <h4>Insights</h4>
+                <p id="insightsCopy">
+                  Recommend scheduling restorative treatment. Use intraoral
+                  camera capture to monitor progression prior to procedure.
+                </p>
+                <div class="insights-meta">
+                  <div class="insight-card">
+                    <h5 id="treatmentTitle">Medical Treatment</h5>
+                    <p id="treatmentCopy">
+                      Apply fluoride treatments to remineralize enamel.
+                    </p>
+                  </div>
+                  <div class="insight-card">
+                    <h5 id="recommendationTitle">Recommendations</h5>
+                    <p id="recommendationCopy">
+                      Reduce sugary snacks and acidic beverages.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div class="action-row stagger">
+                <button type="button" class="btn-secondary" id="downloadBtn">
+                  Download Report (PDF)
+                </button>
+                <button type="button" class="btn-primary" id="resetBtn">
+                  Start New Analysis
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("fileInput");
+      const previewImage = document.getElementById("previewImage");
+      const analyzeBtn = document.getElementById("analyzeBtn");
+      const analyzeForm = document.getElementById("analyzeForm");
+      const uploadShell = document.getElementById("uploadShell");
+      const resultsShell = document.getElementById("resultsShell");
+      const resultImage = document.getElementById("resultImage");
+      const resultsVisual = document.getElementById("resultsVisual");
+      const statusBadge = document.getElementById("statusBadge");
+      const donutMeter = document.getElementById("donutMeter");
+      const confidenceValue = document.getElementById("confidenceValue");
+      const confidenceHeading = document.getElementById("confidenceHeading");
+      const confidenceCopy = document.getElementById("confidenceCopy");
+      const boxLabel = document.getElementById("boxLabel");
+      const boxPath = document.querySelector(".box-path");
+      const resetBtn = document.getElementById("resetBtn");
+      const downloadBtn = document.getElementById("downloadBtn");
+      const analysisError = document.getElementById("analysisError");
+      const insightsCopy = document.getElementById("insightsCopy");
+      const treatmentTitle = document.getElementById("treatmentTitle");
+      const treatmentCopy = document.getElementById("treatmentCopy");
+      const recommendationTitle = document.getElementById(
+        "recommendationTitle"
+      );
+      const recommendationCopy = document.getElementById("recommendationCopy");
+      const API_ENDPOINT = "{{ url_for('api_analyze') }}";
+      const DONUT_CIRCUMFERENCE = 2 * Math.PI * 70;
+      let lastAnalysis = null;
+      const defaultState = {
+        statusBadge: statusBadge.textContent,
+        boxLabel: boxLabel.textContent,
+        confidenceHeading: confidenceHeading.textContent,
+        confidenceCopy: confidenceCopy.textContent,
+        insightsCopy: insightsCopy.textContent,
+        treatmentTitle: treatmentTitle.textContent,
+        treatmentCopy: treatmentCopy.textContent,
+        recommendationTitle: recommendationTitle.textContent,
+        recommendationCopy: recommendationCopy.textContent,
+      };
+
+      const activatePreview = (file) => {
+        if (!file || !file.type.startsWith("image/")) {
+          analysisError.textContent =
+            "Please select an image file (PNG or JPG).";
+          return;
+        }
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          previewImage.src = event.target.result;
+          dropZone.classList.add("has-image");
+          analyzeBtn.disabled = false;
+          analysisError.textContent = "";
+        };
+        reader.readAsDataURL(file);
+      };
+
+      dropZone.addEventListener("click", () => fileInput.click());
+
+      fileInput.addEventListener("change", () => {
+        const [file] = fileInput.files;
+        activatePreview(file);
+      });
+
+      const preventDefaults = (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      };
+
+      ["dragenter", "dragover"].forEach((eventName) => {
+        dropZone.addEventListener(eventName, (event) => {
+          preventDefaults(event);
+          dropZone.classList.add("dragover");
+        });
+      });
+
+      ["dragleave", "drop"].forEach((eventName) => {
+        dropZone.addEventListener(eventName, (event) => {
+          preventDefaults(event);
+          dropZone.classList.remove("dragover");
+        });
+      });
+
+      dropZone.addEventListener("drop", (event) => {
+        const files = event.dataTransfer.files;
+        if (files && files.length) {
+          fileInput.files = files;
+          activatePreview(files[0]);
+        }
+      });
+
+      const animateConfidence = (targetPercent) => {
+        const duration = 1200;
+        const start = performance.now();
+        const step = (now) => {
+          const progress = Math.min((now - start) / duration, 1);
+          const value = Math.floor(progress * targetPercent);
+          confidenceValue.textContent = `${value}%`;
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          }
+        };
+        requestAnimationFrame(step);
+      };
+
+      const clampPercent = (value) => {
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric)) {
+          return 0;
+        }
+        return Math.max(0, Math.min(100, Math.round(numeric)));
+      };
+
+      const showResults = (analysis) => {
+        if (!analysis && !previewImage.src) return;
+
+        lastAnalysis = analysis || null;
+        const hasAnalysis = Boolean(analysis);
+        const analysisImage =
+          hasAnalysis && analysis.image_url
+            ? `${analysis.image_url}?t=${Date.now()}`
+            : previewImage.src;
+
+        if (analysisImage) {
+          resultImage.src = analysisImage;
+        }
+
+        const isHealthy = hasAnalysis ? Boolean(analysis.is_healthy) : false;
+        const labelText = hasAnalysis
+          ? analysis.label || analysis.predicted_class || defaultState.boxLabel
+          : defaultState.boxLabel;
+        const badgeText = hasAnalysis
+          ? analysis.status_badge ||
+            (isHealthy ? "Healthy tooth structure" : defaultState.statusBadge)
+          : defaultState.statusBadge;
+
+        boxLabel.textContent = labelText;
+        statusBadge.textContent = badgeText;
+        statusBadge.classList.toggle("cavity", !isHealthy);
+        statusBadge.classList.toggle("healthy", isHealthy);
+        resultsVisual.classList.toggle("healthy", isHealthy);
+
+        const confidenceSource = hasAnalysis ? analysis.confidence : 0;
+        const confidence = clampPercent(confidenceSource);
+        const confidenceLabel =
+          hasAnalysis && analysis.confidence_text
+            ? analysis.confidence_text
+            : `${confidence}% confidence`;
+        confidenceHeading.textContent = confidenceLabel;
+
+        const summaryCopy =
+          hasAnalysis && analysis.summary
+            ? analysis.summary
+            : defaultState.insightsCopy;
+        const statusCopy =
+          hasAnalysis && analysis.status_badge
+            ? analysis.status_badge
+            : defaultState.confidenceCopy;
+        confidenceCopy.textContent = statusCopy;
+        insightsCopy.textContent = summaryCopy;
+        treatmentTitle.textContent =
+          hasAnalysis && analysis.treatment_title
+            ? analysis.treatment_title
+            : defaultState.treatmentTitle;
+        treatmentCopy.textContent =
+          hasAnalysis && analysis.treatment
+            ? analysis.treatment
+            : defaultState.treatmentCopy;
+        recommendationTitle.textContent =
+          hasAnalysis && analysis.recommendation_title
+            ? analysis.recommendation_title
+            : defaultState.recommendationTitle;
+        recommendationCopy.textContent =
+          hasAnalysis && analysis.recommendation
+            ? analysis.recommendation
+            : defaultState.recommendationCopy;
+
+        donutMeter.style.setProperty(
+          "--donut-offset",
+          DONUT_CIRCUMFERENCE - (confidence / 100) * DONUT_CIRCUMFERENCE
+        );
+        donutMeter.style.strokeDashoffset = DONUT_CIRCUMFERENCE;
+        donutMeter.style.animation = "none";
+        void donutMeter.offsetWidth;
+        donutMeter.style.animation = null;
+
+        if (boxPath) {
+          boxPath.style.animation = "none";
+          void boxPath.offsetWidth;
+          boxPath.style.animation = null;
+        }
+        boxLabel.style.animation = "none";
+        void boxLabel.offsetWidth;
+        boxLabel.style.animation = null;
+
+        confidenceValue.textContent = "0%";
+        animateConfidence(confidence);
+
+        uploadShell.classList.add("collapsed");
+        resultsShell.classList.add("visible");
+        analysisError.textContent = "";
+      };
+
+      const setProcessingState = (isProcessing) => {
+        if (isProcessing) {
+          analyzeBtn.disabled = true;
+          analyzeBtn.classList.add("processing");
+          analyzeBtn.innerHTML = '<span class="spinner"></span> Processing…';
+          dropZone.classList.add("scanning");
+        } else {
+          analyzeBtn.classList.remove("processing");
+          analyzeBtn.innerHTML = "Analyze Image";
+          dropZone.classList.remove("scanning");
+          analyzeBtn.disabled = !fileInput.files.length;
+        }
+      };
+
+      analyzeForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!fileInput.files.length) {
+          analyzeBtn.disabled = true;
+          return;
+        }
+
+        analysisError.textContent = "";
+        setProcessingState(true);
+
+        try {
+          const formData = new FormData();
+          formData.append("filename", fileInput.files[0]);
+
+          const response = await fetch(API_ENDPOINT, {
+            method: "POST",
+            body: formData,
+          });
+
+          let data = {};
+          try {
+            data = await response.json();
+          } catch (_) {
+            data = {};
+          }
+
+          if (!response.ok) {
+            throw new Error(data.error || "Failed to analyze image.");
+          }
+
+          showResults(data);
+        } catch (error) {
+          console.error(error);
+          analysisError.textContent =
+            error.message || "Failed to analyze image.";
+        } finally {
+          setProcessingState(false);
+        }
+      });
+
+      const resetInterface = () => {
+        analyzeForm.reset();
+        previewImage.src = "";
+        resultImage.src = "";
+        dropZone.classList.remove("has-image", "scanning");
+        uploadShell.classList.remove("collapsed");
+        resultsShell.classList.remove("visible");
+        resultsVisual.classList.remove("healthy");
+        statusBadge.classList.add("cavity");
+        statusBadge.classList.remove("healthy");
+        statusBadge.textContent = defaultState.statusBadge;
+        boxLabel.textContent = defaultState.boxLabel;
+        confidenceHeading.textContent = defaultState.confidenceHeading;
+        confidenceCopy.textContent = defaultState.confidenceCopy;
+        insightsCopy.textContent = defaultState.insightsCopy;
+        treatmentTitle.textContent = defaultState.treatmentTitle;
+        treatmentCopy.textContent = defaultState.treatmentCopy;
+        recommendationTitle.textContent = defaultState.recommendationTitle;
+        recommendationCopy.textContent = defaultState.recommendationCopy;
+        confidenceValue.textContent = "0%";
+        donutMeter.style.animation = "none";
+        donutMeter.style.strokeDashoffset = DONUT_CIRCUMFERENCE;
+        void donutMeter.offsetWidth;
+        donutMeter.style.animation = null;
+        analyzeBtn.disabled = true;
+        analyzeBtn.classList.remove("processing");
+        analyzeBtn.innerHTML = "Analyze Image";
+        analysisError.textContent = "";
+        lastAnalysis = null;
+      };
+
+      resetBtn.addEventListener("click", resetInterface);
+      downloadBtn.addEventListener("click", () => {
+        if (!lastAnalysis) {
+          alert("Run an analysis to generate a report.");
+          return;
+        }
+
+        const lines = [
+          "CavityDetect AI · Analysis Report",
+          `Status: ${lastAnalysis.label || lastAnalysis.predicted_class}`,
+          `Confidence: ${lastAnalysis.confidence_text}`,
+          lastAnalysis.summary ? `Summary: ${lastAnalysis.summary}` : null,
+          lastAnalysis.treatment
+            ? `${lastAnalysis.treatment_title}: ${lastAnalysis.treatment}`
+            : null,
+          lastAnalysis.recommendation
+            ? `${lastAnalysis.recommendation_title}: ${lastAnalysis.recommendation}`
+            : null,
+        ].filter(Boolean);
+
+        const blob = new Blob([lines.join("\n")], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `cavity-report-${Date.now()}.txt`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      });
+    </script>
+  </body>
+</html>

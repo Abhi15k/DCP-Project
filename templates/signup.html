@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Dental Cavity Prediction System</title>
+    <title>Create your CavityDetect Account</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -53,57 +53,54 @@
         text-align: center;
       }
 
-      .tooth-wrapper {
-        width: 140px;
-        height: 180px;
+      .orbit {
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        border: 3px solid rgba(3, 181, 192, 0.15);
         margin: 0 auto 1.5rem;
         position: relative;
+        animation: rotate 3s linear infinite;
       }
 
-      .tooth {
-        width: 100%;
-        height: 100%;
-        border-radius: 60% 60% 40% 40% / 45% 45% 55% 55%;
-        background: linear-gradient(145deg, #ffffff, #e9f4ff);
-        border: 3px solid rgba(3, 181, 192, 0.12);
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 25px 50px rgba(3, 181, 192, 0.2);
-      }
-
-      .tooth::after {
+      .orbit::before,
+      .orbit::after {
         content: "";
         position: absolute;
-        inset: 12px;
-        border-radius: inherit;
-        border: 2px dashed rgba(3, 181, 192, 0.2);
+        width: 18px;
+        height: 18px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #03b5c0, #7ef1ff);
       }
 
-      .laser-line {
+      .orbit::before {
+        top: -9px;
+        left: 50%;
+        transform: translateX(-50%);
+        box-shadow: 0 8px 16px rgba(3, 181, 192, 0.4);
+      }
+
+      .orbit::after {
+        bottom: -9px;
+        right: 8%;
+        box-shadow: 0 8px 16px rgba(3, 181, 192, 0.4);
+      }
+
+      .tooth-core {
         position: absolute;
-        left: 0;
-        width: 100%;
-        height: 10px;
-        background: linear-gradient(
-          to right,
-          transparent,
-          rgba(3, 181, 192, 0.25),
-          rgba(3, 181, 192, 0.85),
-          rgba(3, 181, 192, 0.25),
-          transparent
-        );
-        animation: scan 2.2s linear infinite;
+        inset: 28px;
+        border-radius: 40% 40% 50% 50%;
+        background: #fff;
+        border: 2px solid rgba(3, 181, 192, 0.2);
+        box-shadow: inset 0 10px 30px rgba(3, 181, 192, 0.15);
       }
 
-      @keyframes scan {
-        0% {
-          top: 12%;
+      @keyframes rotate {
+        from {
+          transform: rotate(0deg);
         }
-        50% {
-          top: 78%;
-        }
-        100% {
-          top: 12%;
+        to {
+          transform: rotate(360deg);
         }
       }
 
@@ -150,7 +147,7 @@
 
       .visual-panel {
         flex: 1;
-        background: linear-gradient(135deg, #0199a5, #03b5c0);
+        background: radial-gradient(circle at 20% 20%, #7ef1ff, #03b5c0);
         color: #fff;
         position: relative;
         padding: clamp(2rem, 6vw, 3.5rem);
@@ -168,27 +165,47 @@
         opacity: 0.35;
       }
 
-      .visual-panel img {
-        width: 100%;
-        max-width: 360px;
-        margin: 0 auto;
-        mix-blend-mode: screen;
-        filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.25));
-      }
-
       .visual-copy {
         position: relative;
         z-index: 1;
       }
 
-      .visual-copy p {
-        color: rgba(255, 255, 255, 0.85);
-        max-width: 320px;
-      }
-
       .visual-copy h1 {
         font-size: clamp(2rem, 3vw, 3rem);
         margin: 0.35rem 0 1rem;
+      }
+
+      .visual-copy p {
+        color: rgba(255, 255, 255, 0.85);
+        max-width: 360px;
+      }
+
+      .feature-list {
+        margin-top: 2rem;
+        display: grid;
+        gap: 1rem;
+      }
+
+      .feature-list span {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+      }
+
+      .feature-list strong {
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        display: grid;
+        place-items: center;
+        background: rgba(255, 255, 255, 0.15);
+      }
+
+      .illustration {
+        width: 100%;
+        max-width: 420px;
+        margin: 0 auto;
+        filter: drop-shadow(0 20px 50px rgba(0, 0, 0, 0.2));
       }
 
       .form-panel {
@@ -216,9 +233,9 @@
       }
 
       .form-body {
-        display: flex;
-        flex-direction: column;
-        gap: 1.5rem;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 1.2rem;
       }
 
       .input-field {
@@ -260,6 +277,7 @@
       }
 
       .submit-btn {
+        margin-top: 1.5rem;
         border: none;
         border-radius: 18px;
         padding: 1rem;
@@ -270,6 +288,7 @@
         box-shadow: 0 18px 35px rgba(3, 181, 192, 0.35);
         cursor: pointer;
         transition: transform 150ms ease, box-shadow 150ms ease;
+        width: 100%;
       }
 
       .submit-btn:hover {
@@ -278,34 +297,17 @@
       }
 
       .form-footer {
-        margin-top: 2rem;
-        font-size: 0.9rem;
-        color: var(--light-gray);
-        display: flex;
-        align-items: center;
-        gap: 0.65rem;
-      }
-
-      .form-meta {
         margin-top: 1rem;
         font-size: 0.95rem;
         color: var(--light-gray);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.35rem;
       }
 
-      .form-meta a {
+      .form-footer a {
         color: var(--teal);
         text-decoration: none;
-        font-weight: 600;
-      }
-
-      .hipaa-shield {
-        width: 34px;
-        height: 34px;
-        border-radius: 12px;
-        background: rgba(3, 181, 192, 0.15);
-        display: grid;
-        place-items: center;
-        color: var(--teal);
         font-weight: 600;
       }
 
@@ -315,7 +317,11 @@
         }
 
         .visual-panel {
-          min-height: 320px;
+          min-height: 340px;
+        }
+
+        .form-body {
+          grid-template-columns: 1fr;
         }
       }
 
@@ -334,12 +340,10 @@
   <body>
     <div class="loader-screen" id="loader">
       <div class="loader-content">
-        <div class="tooth-wrapper">
-          <div class="tooth">
-            <div class="laser-line"></div>
-          </div>
+        <div class="orbit">
+          <div class="tooth-core"></div>
         </div>
-        <p class="pulsing-text">Initializing AI Diagnostic Engine...</p>
+        <p class="pulsing-text">Provisioning secure workspace...</p>
       </div>
     </div>
 
@@ -347,34 +351,63 @@
       <div class="split-layout">
         <section class="visual-panel">
           <div class="visual-copy">
-            <p>Dental Cavity Prediction System</p>
-            <h1>AI-grade diagnostics for forward-thinking clinicians.</h1>
+            <p>CavityDetect AI · Enrollment</p>
+            <h1>Onboard your practice to precision dentistry.</h1>
             <p>
-              Securely connect to CavityDetect AI and combine intraoral imaging
-              with explainable diagnostics.
+              Invite your care teams, sync imaging protocols, and accelerate decision
+              making with clinically-tuned AI diagnostics.
             </p>
+            <div class="feature-list">
+              <span><strong>01</strong> Unlimited intraoral uploads</span>
+              <span><strong>02</strong> Encrypted audit-ready history</span>
+              <span><strong>03</strong> Collaborative treatment notes</span>
+            </div>
           </div>
           <img
-            src="https://images.unsplash.com/photo-1520012218364-4f3f2b42ff82?auto=format&fit=crop&w=700&q=80"
-            alt="Abstract dental render"
+            class="illustration"
+            src="https://images.unsplash.com/photo-1521791136064-7986c2920216?auto=format&fit=crop&w=900&q=80"
+            alt="Dental technology illustration"
           />
         </section>
 
         <section class="form-panel">
           <div class="form-header">
-            <h2>CavityDetect AI</h2>
-            <p>Secure Portal Login</p>
+            <h2>Create a secure account</h2>
+            <p>We authenticate every provider to maintain clinical integrity.</p>
           </div>
-          <form method="post" action="{{ url_for('userlog') }}" class="form-body">
+          <form method="post" action="{{ url_for('userreg') }}" class="form-body">
             <div class="input-field">
               <input
                 type="text"
                 name="name"
-                id="practitioner"
+                id="fullName"
                 placeholder=" "
                 required
+                autocomplete="name"
               />
-              <label for="practitioner">Practitioner ID / Email</label>
+              <label for="fullName">Full name / Clinic ID</label>
+            </div>
+            <div class="input-field">
+              <input
+                type="email"
+                name="email"
+                id="email"
+                placeholder=" "
+                required
+                autocomplete="email"
+              />
+              <label for="email">Work email</label>
+            </div>
+            <div class="input-field">
+              <input
+                type="tel"
+                name="phone"
+                id="phone"
+                placeholder=" "
+                required
+                autocomplete="tel"
+              />
+              <label for="phone">Contact number</label>
             </div>
             <div class="input-field">
               <input
@@ -383,18 +416,16 @@
                 id="password"
                 placeholder=" "
                 required
+                autocomplete="new-password"
+                minlength="6"
               />
-              <label for="password">Password</label>
+              <label for="password">Create password</label>
             </div>
-            <button type="submit" class="submit-btn">Access Dashboard</button>
-            <p class="form-meta">
-              Need an account?
-              <a href="{{ url_for('signup') }}">Request onboarding</a>
-            </p>
+            <button type="submit" class="submit-btn">Complete enrollment</button>
           </form>
           <div class="form-footer">
-            <span class="hipaa-shield">H</span>
-            <span>Protected by HIPAA-grade encryption</span>
+            <span>Already verified?</span>
+            <a href="{{ url_for('home') }}">Return to secure login</a>
           </div>
         </section>
       </div>
@@ -408,7 +439,7 @@
         setTimeout(() => {
           loader.classList.add("hidden");
           entryShell.classList.add("visible");
-        }, 3000);
+        }, 3200);
       });
     </script>
   </body>

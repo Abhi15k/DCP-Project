@@ -3,14 +3,16 @@ from __future__ import annotations
 import os
 import pickle
 import sqlite3
+from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Tuple
 
 import cv2
 import matplotlib
 import matplotlib.pyplot as plt
+from matplotlib.ticker import PercentFormatter
 import numpy as np
-from flask import (Flask, flash, redirect, render_template, request,
+from flask import (Flask, flash, jsonify, redirect, render_template, request,
                    url_for)
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.image import img_to_array, load_img
@@ -142,8 +144,15 @@ LABEL_METADATA: Dict[str, Dict[str, object]] = {
     },
 }
 
+GRAPH_FILES = [
+    ("Accu_plt.png", "Accuracy Trend"),
+    ("loss_plt.png", "Loss Trend"),
+    ("f1_graph.jpg", "F1 Score by Class"),
+    ("confusion_matrix.jpg", "Confusion Matrix"),
+]
 
-def predict_single_image(image_path: Path) -> Tuple[str, float]:
+
+def predict_single_image(image_path: Path) -> Tuple[str, float, np.ndarray]:
     if MODEL is None:
         raise RuntimeError(f"Model not available: {MODEL_ERROR}")
     if not CLASS_NAMES:
@@ -154,10 +163,11 @@ def predict_single_image(image_path: Path) -> Tuple[str, float]:
     img_array = np.expand_dims(img_array, axis=0) / 255.0
 
     prediction = MODEL.predict(img_array, verbose=0)
-    predicted_class_index = int(np.argmax(prediction))
+    probabilities = prediction[0].astype(float)
+    predicted_class_index = int(np.argmax(probabilities))
     predicted_class = CLASS_NAMES[predicted_class_index]
-    confidence = float(prediction[0][predicted_class_index]) * 100
-    return predicted_class, confidence
+    confidence = float(probabilities[predicted_class_index]) * 100
+    return predicted_class, confidence, probabilities
 
 
 def clean_directory(directory: Path) -> None:
@@ -192,23 +202,78 @@ def generate_preprocessing_images(image_path: Path) -> Dict[str, Path]:
     return outputs
 
 
-def plot_prediction_graph(predicted_label: str) -> Path:
+def plot_prediction_graph(probabilities: np.ndarray, predicted_label: str) -> Path:
     categories = CLASS_NAMES or list(LABEL_METADATA.keys())
-    values = [1.0 if label == predicted_label else 0.0 for label in categories]
+    probs = np.array(probabilities, dtype=float).flatten()
+    category_count = len(categories)
 
-    fig, ax = plt.subplots(figsize=(5, 5))
-    ax.bar([label.title() for label in categories], values, color="maroon", width=0.3)
-    ax.set_xlabel("Category")
-    ax.set_ylabel("Confidence")
+    if probs.size < category_count:
+        probs = np.pad(probs, (0, category_count - probs.size), constant_values=0.0)
+    elif probs.size > category_count:
+        probs = probs[:category_count]
+
+    total = probs.sum()
+    if total > 0:
+        probs = probs / total
+
+    labels = [label.title() for label in categories]
+    try:
+        highlight_index = categories.index(predicted_label)
+    except ValueError:
+        highlight_index = int(np.argmax(probs)) if probs.size else 0
+
+    colors = ["#4f46e5" if idx == highlight_index else "#475569" for idx in range(category_count)]
+
+    fig, ax = plt.subplots(figsize=(6, 4))
+    bars = ax.bar(labels, probs, color=colors, width=0.5)
     ax.set_ylim(0, 1)
-    ax.set_title("Model Confidence by Category")
+    ax.yaxis.set_major_formatter(PercentFormatter(xmax=1))
+    ax.set_ylabel("Confidence", color="#f8fafc")
+    ax.set_title("Model confidence by class", color="#f8fafc")
+    ax.tick_params(colors="#f8fafc", labelrotation=20)
+    ax.spines["bottom"].set_color("#94a3b8")
+    ax.spines["left"].set_color("#94a3b8")
+    ax.set_facecolor("#0f172a")
+    fig.patch.set_facecolor("#0f172a")
+
+    bar_labels = [f"{value * 100:.1f}%" for value in probs]
+    ax.bar_label(bars, labels=bar_labels, padding=4, color="#f8fafc", fontsize=9)
     fig.tight_layout()
 
     output_path = STATIC_DIR / "matrix.png"
-    fig.savefig(output_path)
+    fig.savefig(output_path, transparent=True)
     plt.close(fig)
 
     return output_path
+
+
+def handle_upload_and_analysis(file_storage) -> Dict[str, object]:
+    if not file_storage or not file_storage.filename:
+        raise ValueError("Please select an image file to upload.")
+
+    filename = secure_filename(file_storage.filename)
+    if not filename:
+        raise ValueError("Invalid filename provided.")
+
+    clean_directory(IMAGE_OUTPUT_DIR)
+    image_path = IMAGE_OUTPUT_DIR / filename
+    file_storage.save(image_path)
+
+    predicted_class, confidence, probabilities = predict_single_image(image_path)
+    generate_preprocessing_images(image_path)
+    chart_path = plot_prediction_graph(probabilities, predicted_class)
+    metadata = get_label_metadata(predicted_class)
+    confidence_text = f"{confidence:.2f}%"
+    ACC_PATH.write_text(confidence_text)
+
+    return {
+        "filename": filename,
+        "predicted_class": predicted_class,
+        "confidence": confidence,
+        "confidence_text": confidence_text,
+        "metadata": metadata,
+        "chart_filename": chart_path.name,
+    }
 
 
 def get_label_metadata(label: str) -> Dict[str, object]:
@@ -220,6 +285,7 @@ def inject_status_flags():
     return {
         "model_error": MODEL_ERROR,
         "class_names_error": CLASS_NAMES_ERROR,
+        "current_year": datetime.utcnow().year,
     }
 
 
@@ -280,85 +346,107 @@ def userreg():
         flash("Registration successful. Please log in.", "success")
         return redirect(url_for("home"))
 
-    return redirect(url_for("home"))
+    return redirect(url_for("signup"))
+
+
+@app.route("/signup", methods=["GET"])
+def signup():
+    return render_template("signup.html")
 
 
 @app.route("/predict", methods=["GET", "POST"])
 def predict():
     if request.method == "POST":
-        if MODEL is None or not CLASS_NAMES:
-            flash("Model is not ready. Please train the model first.", "danger")
-            return redirect(url_for("predict"))
-
-        if "filename" not in request.files:
-            flash("Please select an image file to upload.", "warning")
-            return redirect(url_for("predict"))
-
-        file = request.files["filename"]
-        if not file or not file.filename:
-            flash("Please select an image file to upload.", "warning")
-            return redirect(url_for("predict"))
-
-        filename = secure_filename(file.filename)
-        if not filename:
-            flash("Invalid filename provided.", "danger")
-            return redirect(url_for("predict"))
-
-        clean_directory(IMAGE_OUTPUT_DIR)
-        image_path = IMAGE_OUTPUT_DIR / filename
-        file.save(image_path)
-
         try:
-            predicted_class, confidence = predict_single_image(image_path)
-            generate_preprocessing_images(image_path)
-            chart_path = plot_prediction_graph(predicted_class)
+            if MODEL is None or not CLASS_NAMES:
+                raise RuntimeError("Model is not ready. Please train the model first.")
+
+            if "filename" not in request.files:
+                raise ValueError("Please select an image file to upload.")
+
+            payload = handle_upload_and_analysis(request.files["filename"])
         except Exception as exc:  # pragma: no cover - surfaces at runtime
             flash(f"Failed to process image: {exc}", "danger")
             return redirect(url_for("predict"))
 
-        metadata = get_label_metadata(predicted_class)
-        confidence_text = f"{confidence:.2f}%"
-        ACC_PATH.write_text(confidence_text)
-
         return render_template(
             "results.html",
-            status=metadata["display"],
-            status2=f"Accuracy: {confidence_text}",
-            Treatment=metadata["treatment_title"],
-            Treatment1=metadata["treatment"],
-            Recommendation=metadata["recommendation_title"],
-            Recommendation1=metadata["recommendation"],
-            FollowUp=metadata["followup_title"],
-            FollowUp1=metadata["followup"],
-            spread=metadata["spread"],
-            ImageDisplay=url_for("static", filename=f"images/{filename}"),
+            status=payload["metadata"]["display"],
+            status2=f"Accuracy: {payload['confidence_text']}",
+            Treatment=payload["metadata"]["treatment_title"],
+            Treatment1=payload["metadata"]["treatment"],
+            Recommendation=payload["metadata"]["recommendation_title"],
+            Recommendation1=payload["metadata"]["recommendation"],
+            FollowUp=payload["metadata"]["followup_title"],
+            FollowUp1=payload["metadata"]["followup"],
+            spread=payload["metadata"]["spread"],
+            ImageDisplay=url_for("static", filename=f"images/{payload['filename']}", _external=False),
             ImageDisplay1=url_for("static", filename="gray.jpg"),
             ImageDisplay2=url_for("static", filename="edges.jpg"),
             ImageDisplay3=url_for("static", filename="threshold.jpg"),
             ImageDisplay4=url_for("static", filename="sharpened.jpg"),
-            ImageDisplay5=url_for("static", filename=chart_path.name),
+            ImageDisplay5=url_for("static", filename=payload["chart_filename"]),
+            uploaded_filename=payload["filename"],
         )
 
-    return render_template("userlog.html")
+    return render_template("dashboard.html")
+
+
+@app.route("/api/analyze", methods=["POST"])
+def api_analyze():
+    if MODEL is None or not CLASS_NAMES:
+        return jsonify({"error": "Model is not ready. Please train the model first."}), 503
+
+    if "filename" not in request.files:
+        return jsonify({"error": "Please select an image file to upload."}), 400
+
+    try:
+        payload = handle_upload_and_analysis(request.files["filename"])
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:  # pragma: no cover - runtime surface
+        return jsonify({"error": f"Failed to process image: {exc}"}), 500
+
+    metadata = payload["metadata"]
+    is_healthy = payload["predicted_class"] == "no cavity"
+    recommendation_items = metadata.get("recommendation", [])
+    treatment_items = metadata.get("treatment", [])
+
+    response = {
+        "label": metadata.get("display", payload["predicted_class"].title()),
+        "predicted_class": payload["predicted_class"],
+        "status_badge": "Healthy tooth structure" if is_healthy else "High probability of cavity",
+        "is_healthy": is_healthy,
+        "confidence": payload["confidence"],
+        "confidence_text": payload["confidence_text"],
+        "image_url": url_for("static", filename=f"images/{payload['filename']}", _external=False),
+        "summary": metadata.get("spread", ""),
+        "recommendation": " ".join(recommendation_items),
+        "treatment": " ".join(treatment_items),
+        "recommendation_title": metadata.get("recommendation_title", "Recommendation"),
+        "treatment_title": metadata.get("treatment_title", "Treatment"),
+    }
+
+    return jsonify(response)
 
 
 @app.route("/graph", methods=["GET"])
 def graph():
-    images = [
-        url_for("static", filename="Accu_plt.png"),
-        url_for("static", filename="loss_plt.png"),
-        url_for("static", filename="f1_graph.jpg"),
-        url_for("static", filename="confusion_matrix.jpg"),
-    ]
+    graph_cards = []
+    for filename, title in GRAPH_FILES:
+        path = STATIC_DIR / filename
+        graph_cards.append(
+            {
+                "title": title,
+                "url": url_for("static", filename=filename),
+                "exists": path.exists(),
+                "filename": filename,
+            }
+        )
 
-    content = [
-        "Accuracy Graph",
-        "Loss Graph",
-        "F1-Score Graph",
-        "Confusion Matrix Graph",
-    ]
+    missing_graphs = [card["title"] for card in graph_cards if not card["exists"]]
 
-    return render_template("graph.html", images=images, content=content)
+    return render_template("graph.html", graph_cards=graph_cards, missing_graphs=missing_graphs)
 
 
 @app.route("/logout")
