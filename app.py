@@ -297,20 +297,24 @@ def home():
 @app.route("/userlog", methods=["GET", "POST"])
 def userlog():
     if request.method == "POST":
-        name = request.form.get("name", "").strip()
+        identifier = request.form.get("name", "").strip()
         password = request.form.get("password", "").strip()
 
-        if not name or not password:
+        if not identifier or not password:
             flash("Both username and password are required.", "warning")
             return redirect(url_for("home"))
 
         with get_db_connection() as connection:
             row = connection.execute(
-                "SELECT 1 FROM user WHERE name = ? AND password = ?",
-                (name, password),
+                """
+                SELECT password FROM user
+                WHERE LOWER(name) = LOWER(?) OR LOWER(email) = LOWER(?)
+                LIMIT 1
+                """,
+                (identifier, identifier),
             ).fetchone()
 
-        if row:
+        if row and row["password"] == password:
             flash("Login successful. You can now upload an image.", "success")
             return redirect(url_for("predict"))
 
